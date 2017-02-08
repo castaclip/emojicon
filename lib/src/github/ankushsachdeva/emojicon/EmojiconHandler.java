@@ -15,10 +15,10 @@
  */
 package github.ankushsachdeva.emojicon;
 
-import github.ankushsachdeva.emojicon.R;
-
 import android.content.Context;
+import android.support.annotation.DrawableRes;
 import android.text.Spannable;
+import android.text.TextUtils;
 import android.util.SparseIntArray;
 
 /**
@@ -1361,6 +1361,14 @@ public final class EmojiconHandler {
         sSoftbanksMap.put(0xe537, R.drawable.emoji_2122);
     }
 
+    public static boolean isSingleEmoji(Context context, CharSequence text) {
+        if (TextUtils.isEmpty(text)) {
+            return false;
+        }
+        EmojiDrawableResult result = getEmojiDrawableRes(context, text, 0, text.length());
+        return result.hasIcon() && result.characterCount == text.length();
+    }
+
     private static boolean isSoftBankEmoji(char c) {
         return ((c >> 12) == 0xe);
     }
@@ -1375,10 +1383,6 @@ public final class EmojiconHandler {
 
     /**
      * Convert emoji characters of the given Spannable to the according emojicon.
-     *
-     * @param context
-     * @param text
-     * @param emojiSize
      */
     public static void addEmojis(Context context, Spannable text, int emojiSize) {
         addEmojis(context, text, emojiSize, 0, -1);
@@ -1386,17 +1390,11 @@ public final class EmojiconHandler {
 
     /**
      * Convert emoji characters of the given Spannable to the according emojicon.
-     *
-     * @param context
-     * @param text
-     * @param emojiSize
-     * @param index
-     * @param length
      */
     public static void addEmojis(Context context, Spannable text, int emojiSize, int index, int length) {
         int textLength = text.length();
         int textLengthToProcessMax = textLength - index;
-        int textLengthToProcess = length < 0 || length >= textLengthToProcessMax ? textLength : (length+index);
+        int textLengthToProcess = length < 0 || length >= textLengthToProcessMax ? textLength : (length + index);
 
         // remove spans throughout all text
         EmojiconSpan[] oldSpans = text.getSpans(0, textLength, EmojiconSpan.class);
@@ -1406,110 +1404,130 @@ public final class EmojiconHandler {
 
         int skip;
         for (int i = index; i < textLengthToProcess; i += skip) {
-            skip = 0;
-            int icon = 0;
-            char c = text.charAt(i);
-            if (isSoftBankEmoji(c)) {
-                icon = getSoftbankEmojiResource(c);
-                skip = icon == 0 ? 0 : 1;
+            EmojiDrawableResult result = getEmojiDrawableRes(context, text, i, textLengthToProcess);
+            skip = result.characterCount;
+            if (result.drawableRes > 0) {
+                text.setSpan(new EmojiconSpan(context, result.drawableRes, emojiSize), i, i + skip, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        }
+    }
+
+    private static EmojiDrawableResult getEmojiDrawableRes(Context context, CharSequence text, int beginIndex, int textLengthToProcess) {
+        int skip = 0;
+        int icon = 0;
+        char c = text.charAt(beginIndex);
+        if (isSoftBankEmoji(c)) {
+            icon = getSoftbankEmojiResource(c);
+            skip = icon == 0 ? 0 : 1;
+        }
+
+        if (icon == 0) {
+            int unicode = Character.codePointAt(text, beginIndex);
+            skip = Character.charCount(unicode);
+            if (unicode > 0xff) {
+                icon = getEmojiResource(context, unicode);
             }
 
-            if (icon == 0) {
-                int unicode = Character.codePointAt(text, i);
-                skip = Character.charCount(unicode);
-
-                if (unicode > 0xff) {
-                    icon = getEmojiResource(context, unicode);
-                }
-
-                if (icon == 0 && i + skip < textLengthToProcess) {
-                    int followUnicode = Character.codePointAt(text, i + skip);
-                    if (followUnicode == 0x20e3) {
-                        int followSkip = Character.charCount(followUnicode);
-                        switch (unicode) {
-                            case 0x0031:
-                                icon = R.drawable.emoji_0031;
-                                break;
-                            case 0x0032:
-                                icon = R.drawable.emoji_0032;
-                                break;
-                            case 0x0033:
-                                icon = R.drawable.emoji_0033;
-                                break;
-                            case 0x0034:
-                                icon = R.drawable.emoji_0034;
-                                break;
-                            case 0x0035:
-                                icon = R.drawable.emoji_0035;
-                                break;
-                            case 0x0036:
-                                icon = R.drawable.emoji_0036;
-                                break;
-                            case 0x0037:
-                                icon = R.drawable.emoji_0037;
-                                break;
-                            case 0x0038:
-                                icon = R.drawable.emoji_0038;
-                                break;
-                            case 0x0039:
-                                icon = R.drawable.emoji_0039;
-                                break;
-                            case 0x0030:
-                                icon = R.drawable.emoji_0030;
-                                break;
-                            case 0x0023:
-                                icon = R.drawable.emoji_0023;
-                                break;
-                            default:
-                                followSkip = 0;
-                                break;
-                        }
-                        skip += followSkip;
-                    } else {
-                        int followSkip = Character.charCount(followUnicode);
-                        switch (unicode) {
-                            case 0x1f1ef:
-                                icon = (followUnicode == 0x1f1f5) ? R.drawable.emoji_1f1ef_1f1f5 : 0;
-                                break;
-                            case 0x1f1fa:
-                                icon = (followUnicode == 0x1f1f8) ? R.drawable.emoji_1f1fa_1f1f8 : 0;
-                                break;
-                            case 0x1f1eb:
-                                icon = (followUnicode == 0x1f1f7) ? R.drawable.emoji_1f1eb_1f1f7 : 0;
-                                break;
-                            case 0x1f1e9:
-                                icon = (followUnicode == 0x1f1ea) ? R.drawable.emoji_1f1e9_1f1ea : 0;
-                                break;
-                            case 0x1f1ee:
-                                icon = (followUnicode == 0x1f1f9) ? R.drawable.emoji_1f1ee_1f1f9 : 0;
-                                break;
-                            case 0x1f1ec:
-                                icon = (followUnicode == 0x1f1e7) ? R.drawable.emoji_1f1ec_1f1e7 : 0;
-                                break;
-                            case 0x1f1ea:
-                                icon = (followUnicode == 0x1f1f8) ? R.drawable.emoji_1f1ea_1f1f8 : 0;
-                                break;
-                            case 0x1f1f7:
-                                icon = (followUnicode == 0x1f1fa) ? R.drawable.emoji_1f1f7_1f1fa : 0;
-                                break;
-                            case 0x1f1e8:
-                                icon = (followUnicode == 0x1f1f3) ? R.drawable.emoji_1f1e8_1f1f3 : 0;
-                                break;
-                            case 0x1f1f0:
-                                icon = (followUnicode == 0x1f1f7) ? R.drawable.emoji_1f1f0_1f1f7 : 0;
-                                break;
-                            default:
-                                followSkip = 0;
-                                break;
-                        }
-                        skip += followSkip;
+            if (icon == 0 && beginIndex + skip < textLengthToProcess) {
+                int followUnicode = Character.codePointAt(text, beginIndex + skip);
+                if (followUnicode == 0x20e3) {
+                    int followSkip = Character.charCount(followUnicode);
+                    switch (unicode) {
+                        case 0x0031:
+                            icon = R.drawable.emoji_0031;
+                            break;
+                        case 0x0032:
+                            icon = R.drawable.emoji_0032;
+                            break;
+                        case 0x0033:
+                            icon = R.drawable.emoji_0033;
+                            break;
+                        case 0x0034:
+                            icon = R.drawable.emoji_0034;
+                            break;
+                        case 0x0035:
+                            icon = R.drawable.emoji_0035;
+                            break;
+                        case 0x0036:
+                            icon = R.drawable.emoji_0036;
+                            break;
+                        case 0x0037:
+                            icon = R.drawable.emoji_0037;
+                            break;
+                        case 0x0038:
+                            icon = R.drawable.emoji_0038;
+                            break;
+                        case 0x0039:
+                            icon = R.drawable.emoji_0039;
+                            break;
+                        case 0x0030:
+                            icon = R.drawable.emoji_0030;
+                            break;
+                        case 0x0023:
+                            icon = R.drawable.emoji_0023;
+                            break;
+                        default:
+                            followSkip = 0;
+                            break;
                     }
+                    skip += followSkip;
+                } else {
+                    int followSkip = Character.charCount(followUnicode);
+                    switch (unicode) {
+                        case 0x1f1ef:
+                            icon = (followUnicode == 0x1f1f5) ? R.drawable.emoji_1f1ef_1f1f5 : 0;
+                            break;
+                        case 0x1f1fa:
+                            icon = (followUnicode == 0x1f1f8) ? R.drawable.emoji_1f1fa_1f1f8 : 0;
+                            break;
+                        case 0x1f1eb:
+                            icon = (followUnicode == 0x1f1f7) ? R.drawable.emoji_1f1eb_1f1f7 : 0;
+                            break;
+                        case 0x1f1e9:
+                            icon = (followUnicode == 0x1f1ea) ? R.drawable.emoji_1f1e9_1f1ea : 0;
+                            break;
+                        case 0x1f1ee:
+                            icon = (followUnicode == 0x1f1f9) ? R.drawable.emoji_1f1ee_1f1f9 : 0;
+                            break;
+                        case 0x1f1ec:
+                            icon = (followUnicode == 0x1f1e7) ? R.drawable.emoji_1f1ec_1f1e7 : 0;
+                            break;
+                        case 0x1f1ea:
+                            icon = (followUnicode == 0x1f1f8) ? R.drawable.emoji_1f1ea_1f1f8 : 0;
+                            break;
+                        case 0x1f1f7:
+                            icon = (followUnicode == 0x1f1fa) ? R.drawable.emoji_1f1f7_1f1fa : 0;
+                            break;
+                        case 0x1f1e8:
+                            icon = (followUnicode == 0x1f1f3) ? R.drawable.emoji_1f1e8_1f1f3 : 0;
+                            break;
+                        case 0x1f1f0:
+                            icon = (followUnicode == 0x1f1f7) ? R.drawable.emoji_1f1f0_1f1f7 : 0;
+                            break;
+                        default:
+                            followSkip = 0;
+                            break;
+                    }
+                    skip += followSkip;
                 }
             }
+        }
+        return new EmojiDrawableResult(icon, skip);
+    }
 
-            if (icon > 0) {
-                text.setSpan(new EmojiconSpan(context, icon, emojiSize), i, i + skip, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
+    private static class EmojiDrawableResult {
+        @DrawableRes
+        public final int drawableRes;
+
+        public final int characterCount;
+
+        public EmojiDrawableResult(int drawableRes, int characterCount) {
+            this.drawableRes = drawableRes;
+            this.characterCount = characterCount;
+        }
+
+        public boolean hasIcon() {
+            return drawableRes != 0;
         }
     }
 }

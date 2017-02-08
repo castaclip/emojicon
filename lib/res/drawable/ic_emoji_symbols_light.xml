@@ -28,5 +28,5 @@
     <item
         android:state_selected="true"
         android:drawable="@drawable/ic_emoji_symbols_light_activated" />
-    <item android:drawable="@drawable/ic_emoji_symbols_light_normal" />
+    <item android:drawable="@drawable/ic_emoji_symbols_light_activated" />
 </selector>
